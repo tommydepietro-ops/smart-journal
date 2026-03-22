@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-accent: #7c6ef0;
+  --color-accent-light: #a594ff;
+  --color-danger: #ff6b6b;
+}
+
+* {
+  -webkit-tap-highlight-color: rgba(124,110,240,0.15);
+  touch-action: manipulation;
+}
+
+button, a, [role="button"] {
+  cursor: pointer;
+}
+
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 35%, #475569 65%, #1e293b 100%);
+  color: #ffffff;
+  text-shadow: 0 0 1px rgba(255,255,255,0.3);
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+      ellipse at 20% 50%,
+      rgba(124, 110, 240, 0.12) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 20%,
+      rgba(165, 148, 255, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 80%,
+      rgba(99, 79, 211, 0.1) 0%,
+      transparent 50%
+    );
+  pointer-events: none;
+  z-index: -1;
+  animation: subtle-drift 20s ease-in-out infinite alternate;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+@keyframes subtle-drift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-2%, -1%); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+
+/* Safe area padding for PWA */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
