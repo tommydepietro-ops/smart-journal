@@ -1,31 +1,24 @@
-import Database from "better-sqlite3";
-import path from "path";
+import { neon } from "@neondatabase/serverless";
 
-const DB_PATH = path.join(process.cwd(), "journal.db");
+const sql = neon(process.env.DATABASE_URL!);
 
-let db: Database.Database | null = null;
+let initialized = false;
 
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma("journal_mode = WAL");
-    db.pragma("foreign_keys = ON");
-
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS entries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        content TEXT NOT NULL,
-        date TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-      )
-    `);
-
-    db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_entries_date ON entries(date)
-    `);
-  }
-  return db;
+async function init() {
+  if (initialized) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS entries (
+      id SERIAL PRIMARY KEY,
+      content TEXT NOT NULL,
+      date TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_entries_date ON entries(date)
+  `;
+  initialized = true;
 }
 
 export interface JournalEntry {
@@ -36,54 +29,54 @@ export interface JournalEntry {
   updated_at: string;
 }
 
-export function createEntry(content: string, date: string): JournalEntry {
-  const d = getDb();
-  const stmt = d.prepare(
-    "INSERT INTO entries (content, date) VALUES (?, ?)"
-  );
-  const result = stmt.run(content, date);
-  return getEntryById(result.lastInsertRowid as number)!;
+export async function createEntry(content: string, date: string): Promise<JournalEntry> {
+  await init();
+  const rows = await sql`
+    INSERT INTO entries (content, date) VALUES (${content}, ${date})
+    RETURNING *
+  `;
+  return rows[0] as JournalEntry;
 }
 
-export function getEntryById(id: number): JournalEntry | undefined {
-  const d = getDb();
-  return d.prepare("SELECT * FROM entries WHERE id = ?").get(id) as
-    | JournalEntry
-    | undefined;
+export async function getEntryById(id: number): Promise<JournalEntry | undefined> {
+  await init();
+  const rows = await sql`SELECT * FROM entries WHERE id = ${id}`;
+  return rows[0] as JournalEntry | undefined;
 }
 
-export function getEntriesByDate(date: string): JournalEntry[] {
-  const d = getDb();
-  return d
-    .prepare("SELECT * FROM entries WHERE date = ? ORDER BY created_at ASC")
-    .all(date) as JournalEntry[];
+export async function getEntriesByDate(date: string): Promise<JournalEntry[]> {
+  await init();
+  const rows = await sql`
+    SELECT * FROM entries WHERE date = ${date} ORDER BY created_at ASC
+  `;
+  return rows as JournalEntry[];
 }
 
-export function getAllEntries(): JournalEntry[] {
-  const d = getDb();
-  return d
-    .prepare("SELECT * FROM entries ORDER BY date DESC, created_at DESC")
-    .all() as JournalEntry[];
+export async function getAllEntries(): Promise<JournalEntry[]> {
+  await init();
+  const rows = await sql`
+    SELECT * FROM entries ORDER BY date DESC, created_at DESC
+  `;
+  return rows as JournalEntry[];
 }
 
-export function updateEntry(id: number, content: string): JournalEntry | undefined {
-  const d = getDb();
-  d.prepare(
-    "UPDATE entries SET content = ?, updated_at = datetime('now') WHERE id = ?"
-  ).run(content, id);
-  return getEntryById(id);
+export async function updateEntry(id: number, content: string): Promise<JournalEntry | undefined> {
+  await init();
+  const rows = await sql`
+    UPDATE entries SET content = ${content}, updated_at = NOW()
+    WHERE id = ${id} RETURNING *
+  `;
+  return rows[0] as JournalEntry | undefined;
 }
 
-export function deleteEntry(id: number): boolean {
-  const d = getDb();
-  const result = d.prepare("DELETE FROM entries WHERE id = ?").run(id);
-  return result.changes > 0;
+export async function deleteEntry(id: number): Promise<boolean> {
+  await init();
+  const rows = await sql`DELETE FROM entries WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
 }
 
-export function getEntryDates(): string[] {
-  const d = getDb();
-  const rows = d
-    .prepare("SELECT DISTINCT date FROM entries ORDER BY date DESC")
-    .all() as { date: string }[];
-  return rows.map((r) => r.date);
+export async function getEntryDates(): Promise<string[]> {
+  await init();
+  const rows = await sql`SELECT DISTINCT date FROM entries ORDER BY date DESC`;
+  return rows.map((r) => r.date as string);
 }

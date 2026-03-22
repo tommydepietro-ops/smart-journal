@@ -7,12 +7,12 @@ export async function POST() {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Anthropic API key is not configured. Set the ANTHROPIC_API_KEY environment variable." },
+        { error: "Anthropic API key is not configured." },
         { status: 500 }
       );
     }
 
-    const entries = getAllEntries();
+    const entries = await getAllEntries();
     if (entries.length === 0) {
       return NextResponse.json(
         { error: "No journal entries to summarize" },

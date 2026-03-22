@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const entry = getEntryById(parseInt(id, 10));
+    const entry = await getEntryById(parseInt(id, 10));
     if (!entry) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
@@ -37,7 +37,7 @@ export async function PUT(
       );
     }
 
-    const entry = updateEntry(parseInt(id, 10), content);
+    const entry = await updateEntry(parseInt(id, 10), content);
     if (!entry) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
@@ -57,7 +57,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const deleted = deleteEntry(parseInt(id, 10));
+    const deleted = await deleteEntry(parseInt(id, 10));
     if (!deleted) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
